@@ -12,6 +12,12 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/scrape-web', (req, res) => {
+  res.sendFile(__dirname + '/scrape.html');
+});
+
+app.use(express.static('public'));
+
 // Set up a route for handling form submissions
 app.get('/scrape', (req, res) => {
   const url = req.query.url;
