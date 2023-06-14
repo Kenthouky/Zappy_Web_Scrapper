@@ -8,9 +8,11 @@ const sanitizeFilename = require('sanitize-filename');
 const app = express();
 
 app.use(express.static('public'));
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
+
 app.get('/scrape-web', (req, res) => {
   res.sendFile(path.join(__dirname, 'scrape.html'));
 });
@@ -21,7 +23,6 @@ app.get('/scrape', async (req, res) => {
   try {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-
     const scrapedUrls = new Set(); // Track scraped URLs to avoid duplicates
 
     // Block ads using request interception
@@ -38,14 +39,14 @@ app.get('/scrape', async (req, res) => {
       }
     });
 
-    async function scrapePage(currentUrl) {
+    async function scrapePage(currentUrl, depth = 0) {
       if (scrapedUrls.has(currentUrl)) {
         return; // Skip if URL has already been scraped
       }
 
       scrapedUrls.add(currentUrl);
 
-      await page.goto(currentUrl, { waitUntil: 'networkidle2' });
+      await page.goto(currentUrl, { waitUntil: 'networkidle2', timeout: 5000 });
 
       const resources = await page.evaluate(() => {
         const getAttribute = (element, attribute) => element.getAttribute(attribute) || '';
@@ -101,18 +102,19 @@ app.get('/scrape', async (req, res) => {
         }
       }
 
-      const linkedPages = resources
-        .filter(
-          (url) =>
-            url !== currentUrl &&
-            (url.endsWith('.html') || url.endsWith('.php')) &&
-            !scrapedUrls.has(url) &&
-            !url.includes('partner.googleadservices.com')
-        )
-        .map((url) => new URL(url, currentUrl).href);
+      if (depth > 0) {
+        const linkedPages = resources
+          .filter(
+            (url) =>
+              url !== currentUrl &&
+              (url.endsWith('.html') || url.endsWith('.php')) &&
+              !scrapedUrls.has(url) &&
+              !url.includes('partner.googleadservices.com')
+          )
+          .map((url) => new URL(url, currentUrl).href);
 
-      for (const linkedPage of linkedPages) {
-        await scrapePage(linkedPage);
+        const linkedPagesPromises = linkedPages.map((linkedPage) => scrapePage(linkedPage, depth - 1));
+        await Promise.all(linkedPagesPromises);
       }
 
       if (currentUrl === url) {
@@ -127,7 +129,7 @@ app.get('/scrape', async (req, res) => {
       }
     }
 
-    await scrapePage(url);
+    await scrapePage(url, 2); // Limit recursion depth to 2 levels
 
     await browser.close();
   } catch (error) {
