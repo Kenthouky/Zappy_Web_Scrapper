@@ -17,7 +17,9 @@
     "express": "^4.18.2",
     "fs": "^0.0.1-security",
     "jszip": "^3.10.1",
+    "node-fetch": "^3.3.1",
     "path": "^0.12.7",
+    "puppeteer": "^20.7.1",
     "sanitize-filename": "^1.6.3",
     "uuid": "^9.0.0"
   }

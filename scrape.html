@@ -29,10 +29,84 @@
     <!-- template main style css file -->
     <link rel="stylesheet" href="style.css">
 
+ <style>
+#scraping-modal .modal-dialog {
+  max-width: 400px;
+}
+
+#scraping-modal .modal-content {
+  border: none;
+  border-radius: 10px;
+}
+
+#scraping-modal .modal-header {
+  background-color: #f8f9fa;
+  border-bottom: none;
+  padding: 20px;
+}
+
+#scraping-modal .modal-title {
+  color: #333;
+  font-weight: 600;
+  margin: 0;
+}
+
+#scraping-modal .modal-body {
+  padding: 20px;
+}
+
+#scraping-modal .text-center {
+  margin-top: 30px;
+}
+
+#scraping-modal .spinner-border {
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 15px;
+}
+
+#scraping-modal p {
+  margin: 0;
+  color: #555;
+}
+
+/* Modal entrance animation */
+@keyframes modalEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modal content animation */
+@keyframes modalContentAnimation {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Apply animations to the modal */
+#scraping-modal .modal {
+  animation: modalEntrance 0.3s ease-out;
+}
+
+#scraping-modal .modal-content {
+  animation: modalContentAnimation 0.3s ease-out;
+}
 
 
-    
-    
+
+    </style>
+   
 </head>
 
 <body class="body-wrapper">    
@@ -63,7 +137,7 @@
           <input type="text" id="url" name="url" required placeholder="Url">
         </div>
         <div class="col-12">
-          <button style="background-color: #f86048;; border-color: #f86048; border-radius: 16px;" class="theme-btn" type="submit">Submit</button>
+          <button style="background-color: #f86048;; border-color: #f86048; border-radius: 16px;" class="theme-btn" type="submit" data-toggle="modal" data-target="#scraping-modal" >Submit</button>
         </div>
       </form>
     </div>
@@ -71,6 +145,34 @@
             </div>
         </div>
     </section>
+
+<!-- Scraping Modal -->
+<div id="scraping-modal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Scraping in Progress</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <p>Please wait while we scrape the website.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
 
     <footer class="footer-wrapper footer-1">
         <div class="footer-widgets-wrapper">
@@ -147,7 +249,7 @@
 
     <!--  ALl JS Plugins
     ====================================== -->
-    <script src="assets/js/jquery.min.js"></script>
+   <!--  <script src="assets/js/jquery.min.js"></script>
     <script src="assets/js/modernizr.min.js"></script>
     <script src="assets/js/jquery.easing.js"></script>
     <script src="assets/js/popper.min.js"></script>
@@ -159,7 +261,16 @@
     <script src="assets/js/magnific-popup.min.js"></script>
     <script src="assets/js/wow.min.js"></script>
     <script src="assets/js/metismenu.js"></script>
-    <script src="assets/js/active.js"></script>
+    <script src="assets/js/active.js"></script> -->
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="assets/js/script.js"></script>
+
+
+
 </body>
 
 </html>
