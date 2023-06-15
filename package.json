@@ -18,9 +18,11 @@
     "fs": "^0.0.1-security",
     "jszip": "^3.10.1",
     "node-fetch": "^3.3.1",
+    "nodemon": "^2.0.22",
     "path": "^0.12.7",
     "puppeteer": "^20.7.1",
     "sanitize-filename": "^1.6.3",
+    "socket.io": "^4.6.2",
     "uuid": "^9.0.0"
   }
 }
