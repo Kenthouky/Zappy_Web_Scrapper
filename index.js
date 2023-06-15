@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const JSZip = require('jszip');
 const sanitizeFilename = require('sanitize-filename');
-
+const http = require('http');
+const socketIO = require('socket.io');
 const app = express();
 
 app.use(express.static('public'));
@@ -46,7 +47,7 @@ app.get('/scrape', async (req, res) => {
 
       scrapedUrls.add(currentUrl);
 
-      await page.goto(currentUrl, { waitUntil: 'networkidle2', timeout: 5000 });
+      await page.goto(currentUrl, { waitUntil: 'networkidle2', timeout: 10000 });
 
       const resources = await page.evaluate(() => {
         const getAttribute = (element, attribute) => element.getAttribute(attribute) || '';
@@ -69,7 +70,7 @@ app.get('/scrape', async (req, res) => {
       for (const resource of resources) {
         try {
           const absoluteUrl = new URL(resource, currentUrl).href;
-          const response = await page.goto(absoluteUrl, { timeout: 5000 }); // Set a timeout for each request
+          const response = await page.goto(absoluteUrl, { timeout: 10000 }); // Set a timeout for each request
 
           if (response.ok()) {
             const contentType = response.headers()['content-type'];
