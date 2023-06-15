@@ -6,7 +6,10 @@ const JSZip = require('jszip');
 const sanitizeFilename = require('sanitize-filename');
 const http = require('http');
 const socketIO = require('socket.io');
+
 const app = express();
+const server = http.createServer(app);
+const io = socketIO(server);
 
 app.use(express.static('public'));
 
@@ -47,7 +50,7 @@ app.get('/scrape', async (req, res) => {
 
       scrapedUrls.add(currentUrl);
 
-      await page.goto(currentUrl, { waitUntil: 'networkidle2', timeout: 10000 });
+      await page.goto(currentUrl, { waitUntil: 'networkidle2', timeout: 50000 });
 
       const resources = await page.evaluate(() => {
         const getAttribute = (element, attribute) => element.getAttribute(attribute) || '';
@@ -70,7 +73,7 @@ app.get('/scrape', async (req, res) => {
       for (const resource of resources) {
         try {
           const absoluteUrl = new URL(resource, currentUrl).href;
-          const response = await page.goto(absoluteUrl, { timeout: 10000 }); // Set a timeout for each request
+          const response = await page.goto(absoluteUrl, { timeout: 50000 }); // Set a timeout for each request
 
           if (response.ok()) {
             const contentType = response.headers()['content-type'];
@@ -129,6 +132,15 @@ app.get('/scrape', async (req, res) => {
         res.sendFile(path.join(__dirname, zipName));
       }
     }
+
+    // Socket.io for sending progress updates
+    let progress = 0;
+    const totalUrls = 100;
+
+    const progressInterval = setInterval(() => {
+      progress++;
+      io.emit('scrapingProgress', { progress, totalUrls });
+    }, 1000);
 
     await scrapePage(url, 2); // Limit recursion depth to 2 levels
 
