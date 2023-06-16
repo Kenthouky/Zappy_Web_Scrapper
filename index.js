@@ -1,10 +1,11 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 const JSZip = require('jszip');
 const sanitizeFilename = require('sanitize-filename');
 const http = require('http');
 const socketIO = require('socket.io');
-const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -24,10 +25,25 @@ app.get('/scrape', async (req, res) => {
   const url = req.query.url;
 
   try {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+    });
     const page = await browser.newPage();
     const scrapedUrls = new Set(); // Track scraped URLs to avoid duplicates
-    const zip = new JSZip();
+
+    // Block ads using request interception
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      if (
+        request.resourceType() === 'image' ||
+        request.resourceType() === 'script' ||
+        request.resourceType() === 'stylesheet'
+      ) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
 
     async function scrapePage(currentUrl, depth = 0) {
       if (scrapedUrls.has(currentUrl)) {
@@ -37,7 +53,7 @@ app.get('/scrape', async (req, res) => {
       scrapedUrls.add(currentUrl);
 
       try {
-        const response = await page.goto(currentUrl, { waitUntil: 'networkidle2', timeout: 500000 });
+        const response = await page.goto(currentUrl, { waitUntil: 'networkidle2', timeout: 50000 });
 
         const resources = await page.evaluate(() => {
           const getAttribute = (element, attribute) => element.getAttribute(attribute) || '';
@@ -54,6 +70,9 @@ app.get('/scrape', async (req, res) => {
           return [...links, ...stylesheets, ...scripts, ...images];
         });
 
+        const zip = new JSZip();
+        const folderPath = 'scraped_folder';
+
         for (const resource of resources) {
           try {
             const absoluteUrl = new URL(resource, currentUrl).href;
@@ -64,53 +83,62 @@ app.get('/scrape', async (req, res) => {
             const fileName = sanitizeFilename(path.basename(absoluteUrl));
 
             const content = await response.buffer();
+            const filePath = path.join(folderPath, new URL(absoluteUrl).pathname);
 
             if (contentType.startsWith('text/html')) {
               if (currentUrl === url) {
                 // Save the main page as index.html
-                zip.file('index.html', content);
+                zip.file(path.join(folderPath, 'index.html'), content);
               } else {
                 // Save other HTML pages
-                zip.file(`${fileName}.html`, content);
+                zip.file(filePath, content);
               }
-            } else if (!fileExtension || fileExtension === '.php') {
-              // Convert PHP files to HTML
-              zip.file(`${fileName}.html`, content);
+            } else if (!fileExtension || fileExtension === '.html') {
+              // Save unknown or extension-less files as binary
+              zip.file(filePath + '.bin', content);
             } else {
-              // Save other resources as is
-              zip.file(fileName, content);
+              // Save other files with their original extensions
+              zip.file(filePath, content);
             }
-
-            console.log(`Scraped: ${absoluteUrl}`);
           } catch (error) {
-            console.error(`Failed to scrape resource: ${resource}`, error);
+            console.error(`An error occurred while scraping ${resource}: ${error}`);
           }
         }
 
-        const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+        // Recursively scrape child URLs
+        if (depth < 2) {
+          const childUrls = resources.filter((resource) => new URL(resource, currentUrl).origin === url);
 
-        res.setHeader('Content-disposition', 'attachment; filename=scraped_files.zip');
-        res.setHeader('Content-type', 'application/zip');
-        res.send(zipContent);
+          for (const childUrl of childUrls) {
+            await scrapePage(new URL(childUrl, currentUrl).href, depth + 1);
+          }
+        }
 
-        console.log('Scraping completed.');
+        if (currentUrl === url) {
+          // Generate and download ZIP file
+          const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+          const zipFileName = sanitizeFilename(new URL(currentUrl).hostname) + '.zip';
 
-        // Close the browser
-        browser.close();
+          res.set('Content-Type', 'application/zip');
+          res.set('Content-Disposition', `attachment; filename="${zipFileName}"`);
+          res.send(zipContent);
+        }
       } catch (error) {
-        console.error(`Error occurred while scraping: ${currentUrl}`, error);
-        res.status(500).send(`Error occurred while scraping: ${currentUrl}`);
+        console.error(`An error occurred during scraping. Error: ${error}`);
+        res.status(500).send('An error occurred during scraping.');
       }
     }
 
-    scrapePage(url);
+    await scrapePage(url);
+
+    await browser.close();
   } catch (error) {
-    console.error('An error occurred during scraping.', error);
-    res.status(500).send('An error occurred during scraping.');
+    console.error(`An error occurred while launching Puppeteer: ${error}`);
+    res.status(500).send('An error occurred while launching Puppeteer.');
   }
 });
 
-const port = process.env.PORT || 3000;
-server.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
