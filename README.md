@@ -23,7 +23,7 @@ To use Zappy Web Scraper, follow these steps:
 
 4. Run the scraper and wait for the extraction process to complete.
 
-5. Once the scraping is finished, you can preview the extracted data and download it in various formats such as CSV, JSON, or Excel.
+5. Once the scraping is finished, you can preview the extracted data and download it in zipped format.
 
 ## Installation
 Zappy Web Scraper is a web-based tool, so there is no installation required. Simply access the [Zappy Web Scraper website](https://zappyscraper.onrender.com/) and start using it.
